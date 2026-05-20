@@ -47,7 +47,7 @@ const Footer = () => {
         </div>
       </div>
 
-      <div className="container flex items-center justify-between" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-6)', marginTop: 'var(--space-4)' }}>
+      <div className="container flex items-center justify-between footer-bottom" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-6)', marginTop: 'var(--space-4)', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
         <p className="text-muted text-sm">© {new Date().getFullYear()} EduMarket. All rights reserved.</p>
         <div className="flex gap-4">
           <a href="#" className="text-muted hover:text-accent" style={{ transition: 'color var(--transition-fast)' }}>

@@ -279,7 +279,7 @@ const UserProfile = () => {
           filter: 'blur(80px)', pointerEvents: 'none',
         }}></div>
 
-        <div className="relative z-10 flex flex-wrap items-center gap-8">
+        <div className="relative z-10 flex flex-wrap items-center gap-8 profile-header-inner">
           <div className="avatar avatar-xl" style={{
             background: getAvatarColor(displayUsername),
             fontSize: '2rem', width: '100px', height: '100px',
@@ -309,7 +309,7 @@ const UserProfile = () => {
             </p>
           </div>
 
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-3 flex-wrap profile-actions">
             {!isOwnProfile && (
               <button onClick={handleMessage} className="btn btn-primary">
                 💬 {isAuthenticated ? 'Send Message' : 'Sign in to Message'}
@@ -327,7 +327,7 @@ const UserProfile = () => {
         </div>
 
         {/* Stats */}
-        <div className="flex flex-wrap gap-8 mt-8 pt-6 relative z-10" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <div className="flex flex-wrap gap-8 mt-8 pt-6 relative z-10 profile-stats" style={{ borderTop: '1px solid var(--border-subtle)' }}>
           {[
             { value: profileUser.notesUploaded || userNotes.length, label: 'Notes Uploaded', gradient: 'text-gradient' },
             { value: (profileUser.totalDownloads || 0).toLocaleString(), label: 'Total Downloads', gradient: 'text-gradient-teal' },

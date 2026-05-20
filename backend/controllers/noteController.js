@@ -98,6 +98,8 @@ const createNote = async (req, res) => {
     const {
       title, subject, educationLevel, description,
       price, pages, isHandwritten, hasDigitalized, tags,
+      digitalizedContent, qualityScore, qualityAnalysis,
+      shortSummary, revisionNotes, plagiarismScore, originalityReport,
     } = req.body;
 
     if (!title || !subject || !educationLevel || !description || !price || !pages) {
@@ -135,6 +137,16 @@ const createNote = async (req, res) => {
       }
     }
 
+    // Parse qualityAnalysis if provided as a JSON string
+    let parsedQualityAnalysis = { clarity: 0, completeness: 0, structure: 0, formulas: 0 };
+    if (qualityAnalysis) {
+      try {
+        parsedQualityAnalysis = typeof qualityAnalysis === 'string' ? JSON.parse(qualityAnalysis) : qualityAnalysis;
+      } catch (err) {
+        console.warn('Failed to parse qualityAnalysis JSON, using fallback', err);
+      }
+    }
+
     const note = await Note.create({
       title,
       subject,
@@ -145,6 +157,13 @@ const createNote = async (req, res) => {
       pages: Number(pages),
       isHandwritten: isHandwritten === 'true' || isHandwritten === true,
       hasDigitalized: hasDigitalized === 'true' || hasDigitalized === true,
+      digitalizedContent: digitalizedContent || '',
+      qualityScore: Number(qualityScore || 0),
+      qualityAnalysis: parsedQualityAnalysis,
+      shortSummary: shortSummary || '',
+      revisionNotes: revisionNotes || '',
+      plagiarismScore: Number(plagiarismScore || 100),
+      originalityReport: originalityReport || '',
       thumbnail,
       fileUrl,
       tags: parsedTags,
@@ -177,11 +196,22 @@ const updateNote = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this note' });
     }
 
-    const allowedUpdates = ['title', 'subject', 'educationLevel', 'description', 'price', 'tags'];
+    const allowedUpdates = [
+      'title', 'subject', 'educationLevel', 'description', 'price', 'tags',
+      'digitalizedContent', 'qualityScore', 'qualityAnalysis', 'shortSummary', 'revisionNotes', 'plagiarismScore', 'originalityReport'
+    ];
     const updates = {};
     for (const key of allowedUpdates) {
       if (req.body[key] !== undefined) {
-        updates[key] = req.body[key];
+        if (key === 'qualityAnalysis' && typeof req.body[key] === 'string') {
+          try {
+            updates[key] = JSON.parse(req.body[key]);
+          } catch {
+            updates[key] = req.body[key];
+          }
+        } else {
+          updates[key] = req.body[key];
+        }
       }
     }
 

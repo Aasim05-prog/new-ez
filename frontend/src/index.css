@@ -1642,3 +1642,203 @@ h1, h2, h3, h4, h5, h6 {
   to { transform: rotate(360deg); }
 }
 .animate-spin { animation: spin 1s linear infinite; }
+
+/* ── 49. Personalized Notes Tabs ──────────────────────────── */
+.notes-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-8);
+  padding: 4px;
+  background: var(--bg-elevated);
+  border-radius: var(--border-radius-full);
+  border: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.notes-tabs::-webkit-scrollbar { display: none; }
+
+.notes-tab {
+  padding: 0.6rem 1.25rem;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: var(--border-radius-full);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.notes-tab:hover { color: var(--text-primary); background: rgba(0,0,0,0.03); }
+.notes-tab.active {
+  color: #fff;
+  background: var(--gradient-purple);
+  box-shadow: var(--shadow-primary);
+}
+
+/* ── 50. Browse filters toggle (mobile) ───────────────────── */
+.browse-filter-toggle {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 0.6rem 1.25rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--border-radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  width: 100%;
+  justify-content: center;
+}
+.browse-filter-toggle:hover { border-color: var(--brand-primary); }
+
+/* ── 51. Comprehensive Mobile Overrides ───────────────────── */
+@media (max-width: 768px) {
+  /* Browse page: collapsible sidebar */
+  .browse-filter-toggle { display: flex; }
+  .hide-mobile { display: none !important; }
+  .browse-sidebar {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-overlay);
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: flex-end;
+    padding: 0;
+  }
+  .browse-sidebar.open { display: flex; }
+  .browse-sidebar-inner {
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
+    border-radius: 24px 24px 0 0;
+    box-shadow: var(--shadow-xl);
+    animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Note detail: stack sidebar */
+  .note-detail-layout {
+    flex-direction: column !important;
+  }
+  .note-detail-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    position: static !important;
+  }
+
+  /* Dashboard: scrollable tabs */
+  .dashboard-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+  }
+  .dashboard-tabs::-webkit-scrollbar { display: none; }
+  .dashboard-header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .dashboard-header-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Notification dropdown */
+  .notif-dropdown {
+    width: calc(100vw - 2rem) !important;
+    right: -60px !important;
+    max-width: 360px;
+  }
+
+  /* Footer bottom bar */
+  .footer-bottom {
+    flex-direction: column !important;
+    gap: var(--space-4) !important;
+    text-align: center;
+  }
+  .footer-bottom > div { justify-content: center; }
+
+  /* Profile header */
+  .profile-header-inner {
+    flex-direction: column !important;
+    text-align: center;
+    align-items: center !important;
+  }
+  .profile-header-inner .flex-1 {
+    text-align: center;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+  }
+  .profile-actions {
+    width: 100%;
+    justify-content: center !important;
+  }
+  .profile-stats {
+    justify-content: center !important;
+    width: 100%;
+  }
+
+  /* Upload review grid */
+  .upload-review-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hero stats */
+  .hero-stats {
+    gap: var(--space-4) !important;
+  }
+  .hero-stats .font-black {
+    font-size: var(--text-2xl) !important;
+  }
+
+  /* Notes feed */
+  .notes-feed-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Section titles */
+  .section-title {
+    font-size: var(--text-2xl) !important;
+  }
+
+  /* Auth card */
+  .auth-card {
+    padding: var(--space-6) !important;
+  }
+
+  /* General padding adjustments */
+  .mobile-p-sm {
+    padding: var(--space-4) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-stats {
+    flex-direction: column !important;
+    gap: var(--space-3) !important;
+  }
+  .hero-stats > div {
+    flex-direction: row !important;
+    gap: var(--space-2);
+  }
+  .notes-tabs {
+    gap: var(--space-1);
+  }
+  .notes-tab {
+    padding: 0.5rem 0.9rem;
+    font-size: var(--text-xs);
+  }
+  .container {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+}

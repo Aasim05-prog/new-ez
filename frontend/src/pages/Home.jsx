@@ -5,29 +5,61 @@ import { notesAPI } from '../context/api';
 import SearchBar from '../components/ui/SearchBar';
 import NoteCard from '../components/ui/NoteCard';
 
+const TABS = [
+  { id: 'foryou', label: '📚 For You', icon: '📚' },
+  { id: 'handwritten', label: '✍️ Handwritten', icon: '✍️' },
+  { id: 'digital', label: '💻 Digital', icon: '💻' },
+  { id: 'free', label: '🆓 Free', icon: '🆓' },
+];
+
 const Home = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('foryou');
 
   useEffect(() => {
     const fetchNotes = async () => {
+      setLoading(true);
       try {
         const params = { limit: 6, sort: 'popular' };
+
+        // Filter by user's education level if logged in
         if (user?.educationLevel) {
           params.educationLevel = user.educationLevel;
         }
-        const data = await notesAPI.getAll(params);
+
+        // Apply tab-specific filters
+        if (activeTab === 'handwritten') {
+          // Backend doesn't support isHandwritten filter directly,
+          // so we fetch more and filter client-side
+        } else if (activeTab === 'free') {
+          params.isTextbook = 'true';
+        }
+
+        const data = await notesAPI.getAll({ ...params, limit: 20 });
         let fetched = data.notes || [];
-        // If user's level returns fewer than 6, backfill with popular notes
-        if (fetched.length < 6 && user?.educationLevel) {
+
+        // Client-side filtering for handwritten/digital tabs
+        if (activeTab === 'handwritten') {
+          fetched = fetched.filter(n => n.isHandwritten);
+        } else if (activeTab === 'digital') {
+          fetched = fetched.filter(n => !n.isHandwritten);
+        }
+
+        // Limit to 6
+        fetched = fetched.slice(0, 6);
+
+        // Backfill if user's level returns too few
+        if (fetched.length < 6 && user?.educationLevel && activeTab === 'foryou') {
           const moreData = await notesAPI.getAll({ limit: 6, sort: 'popular' });
           const moreNotes = (moreData.notes || []).filter(
             n => !fetched.find(f => (f._id || f.id) === (n._id || n.id))
           );
           fetched = [...fetched, ...moreNotes].slice(0, 6);
         }
+
         setNotes(fetched);
       } catch (error) {
         console.error("Error fetching notes:", error);
@@ -37,7 +69,7 @@ const Home = () => {
       }
     };
     fetchNotes();
-  }, [user?.educationLevel]);
+  }, [user?.educationLevel, activeTab]);
 
   const handleUploadClick = (e) => {
     if (!isAuthenticated) {
@@ -70,7 +102,7 @@ const Home = () => {
           </div>
 
           {/* Stats */}
-          <div className="flex items-center justify-center gap-8 mt-12 pt-8" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <div className="flex items-center justify-center gap-8 mt-12 pt-8 hero-stats" style={{ borderTop: '1px solid var(--border-subtle)' }}>
             <div className="flex flex-col">
               <span className="font-black text-3xl text-gradient">50K+</span>
               <span className="text-sm text-muted font-medium mt-1">Notes Shared</span>
@@ -89,18 +121,43 @@ const Home = () => {
 
       <div className="container divider"></div>
 
-      {/* Notes Feed Section */}
+      {/* Personalized Notes Feed Section */}
       <section className="section container">
         <div className="section-header">
-          <span className="section-eyebrow">📖 {user?.educationLevel ? 'Based on Your Level' : 'Popular Notes'}</span>
+          <span className="section-eyebrow">
+            {user?.educationLevel ? '🎯 Personalized For You' : '📖 Popular Notes'}
+          </span>
           <h2 className="section-title">
-            {user?.educationLevel ? `Notes for ${user.educationLevel}` : 'Trending Notes'}
+            {user?.educationLevel
+              ? <>Notes for <span className="text-gradient">{user.educationLevel}</span></>
+              : 'Trending Notes'}
           </h2>
-          <p className="section-subtitle">Handpicked study materials relevant to your education level.</p>
+          <p className="section-subtitle">
+            {user?.educationLevel
+              ? 'Handpicked study materials matching your education level — handwritten, digital, and free.'
+              : 'Discover the most popular study materials across all education levels.'}
+          </p>
         </div>
 
+        {/* Tabs — only show when logged in */}
+        {user?.educationLevel && (
+          <div className="flex justify-center mb-8">
+            <div className="notes-tabs">
+              {TABS.map(tab => (
+                <button
+                  key={tab.id}
+                  className={`notes-tab ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {loading ? (
-          <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+          <div className="grid gap-6 notes-feed-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
             {[1, 2, 3, 4, 5, 6].map(i => (
               <div key={i} className="card" style={{ height: '380px' }}>
                 <div className="skeleton" style={{ height: '180px' }}></div>
@@ -112,16 +169,38 @@ const Home = () => {
               </div>
             ))}
           </div>
-        ) : (
-          <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+        ) : notes.length > 0 ? (
+          <div className="grid gap-6 notes-feed-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
             {notes.map((note, i) => (
               <NoteCard key={note._id || note.id} note={note} index={i} />
             ))}
           </div>
+        ) : (
+          <div className="card text-center py-12 animate-fade-in-up">
+            <div className="text-5xl mb-4">
+              {activeTab === 'handwritten' ? '✍️' : activeTab === 'digital' ? '💻' : activeTab === 'free' ? '🆓' : '🔍'}
+            </div>
+            <h3 className="font-bold text-xl mb-2">No {activeTab === 'foryou' ? '' : activeTab} notes found</h3>
+            <p className="text-muted text-sm">
+              {user?.educationLevel
+                ? `No ${activeTab !== 'foryou' ? activeTab + ' ' : ''}notes available yet for ${user.educationLevel}. Try another category!`
+                : 'Browse all notes to find study materials.'}
+            </p>
+            {activeTab !== 'foryou' && (
+              <button className="btn btn-outline mt-4" onClick={() => setActiveTab('foryou')}>
+                ← Back to For You
+              </button>
+            )}
+          </div>
         )}
 
         <div className="flex justify-center mt-12">
-          <Link to="/browse" className="btn btn-outline btn-lg">Browse All Notes →</Link>
+          <Link
+            to={user?.educationLevel ? `/browse` : '/browse'}
+            className="btn btn-outline btn-lg"
+          >
+            Browse All Notes →
+          </Link>
         </div>
       </section>
 
@@ -186,7 +265,7 @@ const Home = () => {
           <div className="relative z-10">
             <h2 className="font-black text-4xl mb-6 text-gradient">Ready to share your knowledge?</h2>
             <p className="text-muted text-lg max-w-2xl mx-auto mb-8 font-medium">Upload your notes today and let our AI do the magic. Digitalize, price, and publish — all in minutes.</p>
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-4" style={{ flexWrap: 'wrap' }}>
               <Link to="/upload" className="btn btn-primary btn-xl animate-pulse-glow" onClick={handleUploadClick}>
                 {isAuthenticated ? 'Upload Notes' : 'Sign in to Upload'}
               </Link>

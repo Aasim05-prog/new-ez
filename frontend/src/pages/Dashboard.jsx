@@ -12,7 +12,18 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [purchasedLoading, setPurchasedLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
-  const [activeTab, setActiveTab] = useState('uploaded'); // 'uploaded' | 'purchased'
+  const [activeTab, setActiveTab] = useState('uploaded');
+  const [confidenceRatings, setConfidenceRatings] = useState(() => {
+    const saved = localStorage.getItem('edumarket_diagnostics');
+    return saved ? JSON.parse(saved) : {
+      'DBMS': 3,
+      'Data Structures': 4,
+      'Computer Networks': 2,
+      'Operating Systems': 3,
+      'Mathematics & Calculus': 5
+    };
+  });
+  const [marketplaceNotes, setMarketplaceNotes] = useState([]);
 
   // Fetch uploaded notes
   useEffect(() => {
@@ -48,6 +59,19 @@ const Dashboard = () => {
     if (user) fetchPurchased();
   }, [user]);
 
+  // Fetch marketplace notes for learning analysis recommendations
+  useEffect(() => {
+    const fetchMarketplace = async () => {
+      try {
+        const notes = await notesAPI.getAll();
+        setMarketplaceNotes(notes || []);
+      } catch (err) {
+        console.warn('Failed to load marketplace notes for learning analysis:', err);
+      }
+    };
+    fetchMarketplace();
+  }, []);
+
   const handleDelete = async (noteId) => {
     if (!window.confirm('Are you sure you want to delete this note?')) return;
     setDeletingId(noteId);
@@ -63,6 +87,24 @@ const Dashboard = () => {
   const totalDownloads = myNotes.reduce((sum, n) => sum + (n.downloads || 0), 0);
   const totalEarnings = myNotes.reduce((sum, n) => sum + ((n.price || 0) * (n.downloads || 0)), 0);
 
+  const weakSubjects = Object.keys(confidenceRatings).filter(sub => confidenceRatings[sub] <= 3);
+
+  const recommendedNotes = marketplaceNotes.filter(note => {
+    const noteSubject = (note.subject || '').toLowerCase();
+    const noteTitle = (note.title || '').toLowerCase();
+    
+    return weakSubjects.some(weakSub => {
+      const query = weakSub.toLowerCase();
+      if (query.includes('dbms') && (noteSubject.includes('dbms') || noteSubject.includes('database') || noteTitle.includes('dbms') || noteTitle.includes('database'))) return true;
+      if (query.includes('data structures') && (noteSubject.includes('structure') || noteSubject.includes('algorithm') || noteTitle.includes('structure') || noteTitle.includes('algorithm') || noteSubject.includes('dsa') || noteTitle.includes('dsa'))) return true;
+      if (query.includes('networks') && (noteSubject.includes('network') || noteTitle.includes('network'))) return true;
+      if (query.includes('systems') && (noteSubject.includes('operating') || noteSubject.includes('os') || noteTitle.includes('operating') || noteTitle.includes('os'))) return true;
+      if (query.includes('mathematics') && (noteSubject.includes('math') || noteSubject.includes('calculus') || noteTitle.includes('math') || noteTitle.includes('calculus'))) return true;
+      
+      return noteSubject.includes(query) || noteTitle.includes(query);
+    });
+  });
+
   return (
     <div className="container min-h-screen" style={{ paddingTop: '10vh', paddingBottom: 'var(--space-20)' }}>
       {/* Dashboard Header */}
@@ -76,7 +118,7 @@ const Dashboard = () => {
             <p className="text-muted text-sm">@{user?.username} • {user?.educationLevel}</p>
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-4 dashboard-header-actions">
           <Link to="/upload" className="btn btn-primary">📤 Upload Notes</Link>
           <Link to="/browse" className="btn btn-secondary">📚 Browse Notes</Link>
         </div>
@@ -103,10 +145,11 @@ const Dashboard = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-8 p-1 rounded-xl" style={{ background: 'var(--bg-elevated)', display: 'inline-flex', width: 'auto' }}>
+      <div className="flex gap-1 mb-8 p-1 rounded-xl dashboard-tabs" style={{ background: 'var(--bg-elevated)', display: 'inline-flex', width: 'auto', maxWidth: '100%' }}>
         {[
           { id: 'uploaded', label: '📤 My Uploaded Notes', count: myNotes.length },
           { id: 'purchased', label: '📥 My Purchased Notes', count: purchasedList.length || purchasedNotes.length },
+          { id: 'analysis', label: '🧠 AI Learning Analysis', count: weakSubjects.length > 0 ? `${weakSubjects.length} Focus Areas` : 'Optimal' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -186,36 +229,102 @@ const Dashboard = () => {
         </section>
       )}
 
-      {/* My Purchased Notes */}
-      {activeTab === 'purchased' && (
-        <section className="animate-fade-in">
-          {purchasedLoading ? (
-            <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-              {[1, 2, 3].map(i => (
-                <div key={i} className="card" style={{ height: '380px' }}>
-                  <div className="skeleton" style={{ height: '180px' }}></div>
-                  <div style={{ padding: '1.25rem' }}>
-                    <div className="skeleton" style={{ height: '18px', width: '80%', marginBottom: '12px' }}></div>
-                    <div className="skeleton" style={{ height: '14px', width: '50%', marginBottom: '8px' }}></div>
-                    <div className="skeleton" style={{ height: '14px', width: '60%' }}></div>
+      {/* AI Learning Analysis */}
+      {activeTab === 'analysis' && (
+        <section className="animate-fade-in flex flex-col gap-6">
+          <div className="card p-6" style={{ background: 'var(--gradient-purple)', color: '#fff', borderRadius: 'var(--border-radius-xl)', padding: 'var(--space-8)' }}>
+            <h2 className="font-extrabold text-2xl mb-2">🧠 AI Learning Analysis & Advisor</h2>
+            <p className="text-sm opacity-90 leading-relaxed max-w-2xl">Welcome to your intelligent study studio. Diagnostic scores refresh dynamically to display personalized warnings, highlight core exam hacks, and match study resources from the marketplace.</p>
+          </div>
+
+          <div className="grid gap-8 upload-ai-review-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+            {/* Diagnostic sliders card */}
+            <div className="card p-6" style={{ background: 'var(--bg-surface)' }}>
+              <h3 className="font-bold text-md mb-4 text-gradient">📋 Curriculum Strength Diagnostic</h3>
+              <p className="text-xs text-muted mb-6">Select your current confidence (1 = Weak, 5 = Mastered) to refresh study alerts.</p>
+              <div className="flex flex-col gap-5">
+                {Object.entries(confidenceRatings).map(([subject, rating]) => (
+                  <div key={subject} className="flex flex-col gap-2">
+                    <div className="flex justify-between items-center text-xs font-semibold">
+                      <span style={{ color: 'var(--text-primary)' }}>{subject}</span>
+                      <span className={`badge ${rating <= 2 ? 'badge-primary' : rating === 3 ? 'badge-secondary' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.2rem 0.5rem' }}>
+                        {['', '🔴 Weak (Needs Help)', '🔴 Weak (Needs Help)', '🟡 Developing', '🟢 Moderate', '🏆 Mastered'][rating]}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <input 
+                        type="range" 
+                        min="1" 
+                        max="5" 
+                        className="w-full"
+                        style={{ accentColor: 'var(--brand-primary)', cursor: 'pointer', height: '4px' }}
+                        value={rating} 
+                        onChange={(e) => {
+                          const newRating = Number(e.target.value);
+                          setConfidenceRatings(prev => {
+                            const updated = { ...prev, [subject]: newRating };
+                            localStorage.setItem('edumarket_diagnostics', JSON.stringify(updated));
+                            return updated;
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* AI Advisor alerts card */}
+            <div>
+              {weakSubjects.length > 0 ? (
+                <div className="card p-6 h-full" style={{ background: 'rgba(255, 101, 132, 0.02)', borderColor: 'rgba(255, 101, 132, 0.15)' }}>
+                  <h3 className="font-bold text-md mb-4 text-gradient-coral">⚠️ AI exam Alerts: {weakSubjects.length} Focus Areas</h3>
+                  <div className="flex flex-col gap-4">
+                    {weakSubjects.map(sub => {
+                      let tip = "Focus on solving standard examination questions and quick cheat sheets.";
+                      if (sub === 'DBMS') tip = "💡 SQL joins and normalization forms are heavily tested. Focus on Solved ER diagrams.";
+                      if (sub.includes('Structures')) tip = "💡 Graph traversals (DFS/BFS) and binary search trees are priority exam questions. Solve coding challenges.";
+                      if (sub.includes('Networks')) tip = "💡 The OSI model layers and TCP congestion control algorithms are critical. Review standard network packet flow.";
+                      if (sub.includes('Systems')) tip = "💡 CPU scheduling algorithms and deadlock handling rules are core questions in end-term exams.";
+                      if (sub.includes('Mathematics')) tip = "💡 Integration by parts and differential matrices are priority areas. Practice standard proofs.";
+
+                      return (
+                        <div key={sub} className="p-4 rounded-lg" style={{ background: 'var(--bg-elevated)', borderLeft: '3px solid #ff6584' }}>
+                          <h4 className="font-bold text-xs text-primary mb-1">{sub} Alert</h4>
+                          <p className="text-xs text-muted" style={{ lineHeight: 1.6 }}>{tip}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              ))}
+              ) : (
+                <div className="card text-center p-6 h-full flex flex-col items-center justify-center" style={{ background: 'rgba(16, 185, 129, 0.03)', borderColor: 'rgba(16, 185, 129, 0.2)' }}>
+                  <span className="text-4xl mb-3 block">🏆</span>
+                  <h4 className="font-bold text-md text-success">Optimal Academic Profile!</h4>
+                  <p className="text-xs text-muted max-w-xs mt-1">You rate all core curriculum areas highly. Keep reviewing cheat sheets to maintain your edge.</p>
+                </div>
+              )}
             </div>
-          ) : purchasedList.length > 0 ? (
-            <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-              {purchasedList.map((note, i) => (
-                <NoteCard key={note._id || note.id} note={note} index={i} />
-              ))}
-            </div>
-          ) : (
-            <div className="card text-center py-12">
-              <span className="text-4xl mb-4 block">🛒</span>
-              <h3 className="font-bold text-lg mb-2">No purchases yet</h3>
-              <p className="text-muted text-sm mb-6">Start browsing notes to find study material you love!</p>
-              <Link to="/browse" className="btn btn-outline">Browse Notes</Link>
-            </div>
-          )}
+          </div>
+
+          {/* Dynamic note suggestions */}
+          <div className="mt-8">
+            <h3 className="font-bold text-xl mb-6">📚 Recommended Marketplace Study Notes</h3>
+            {recommendedNotes.length > 0 ? (
+              <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+                {recommendedNotes.map((note, i) => (
+                  <NoteCard key={note._id || note.id} note={note} index={i} />
+                ))}
+              </div>
+            ) : (
+              <div className="card text-center py-12" style={{ border: '2px dashed var(--border-medium)', background: 'rgba(108,99,255,0.02)' }}>
+                <span className="text-4xl mb-4 block">📚</span>
+                <h3 className="font-bold text-lg mb-2">No Matches in Market</h3>
+                <p className="text-muted text-sm mb-6 max-w-md mx-auto">There are currently no listed notes in the marketplace addressing your exact weak areas ({weakSubjects.join(', ') || 'none'}). Check back later or upload your notes to build study guilds!</p>
+                <Link to="/browse" className="btn btn-outline">Browse All Notes</Link>
+              </div>
+            )}
+          </div>
         </section>
       )}
     </div>

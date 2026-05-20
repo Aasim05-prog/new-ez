@@ -50,6 +50,36 @@ const noteSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  digitalizedContent: {
+    type: String,
+    default: '',
+  },
+  qualityScore: {
+    type: Number,
+    default: 0,
+  },
+  qualityAnalysis: {
+    clarity: { type: Number, default: 0 },
+    completeness: { type: Number, default: 0 },
+    structure: { type: Number, default: 0 },
+    formulas: { type: Number, default: 0 },
+  },
+  shortSummary: {
+    type: String,
+    default: '',
+  },
+  revisionNotes: {
+    type: String,
+    default: '',
+  },
+  plagiarismScore: {
+    type: Number,
+    default: 100,
+  },
+  originalityReport: {
+    type: String,
+    default: '',
+  },
   thumbnail: {
     type: String,
     required: true,
