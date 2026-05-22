@@ -206,6 +206,66 @@ const Home = () => {
 
       <div className="container divider"></div>
 
+      {/* AI Features Highlight */}
+      <section className="section container">
+        <div className="card relative overflow-hidden" style={{ 
+          padding: 'var(--space-12) var(--space-8)', 
+          background: 'linear-gradient(135deg, rgba(20,20,35,0.92), rgba(40,30,60,0.92))', 
+          border: '1px solid rgba(255, 255, 255, 0.1)', 
+          boxShadow: '0 8px 32px 0 rgba(108, 99, 255, 0.15)',
+          borderRadius: 'var(--border-radius-2xl)',
+          color: '#fff'
+        }}>
+          {/* Neon Glow Blobs */}
+          <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: '350px', height: '350px', background: 'radial-gradient(circle, rgba(108,99,255,0.25), transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}></div>
+          <div style={{ position: 'absolute', bottom: '-20%', right: '-10%', width: '350px', height: '350px', background: 'radial-gradient(circle, rgba(20,184,166,0.2), transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}></div>
+
+          <div className="relative z-10 grid grid-2 gap-8 items-center" style={{ maxWidth: '1100px', margin: '0 auto' }}>
+            <div className="animate-fade-in-up">
+              <span className="section-eyebrow" style={{ color: 'var(--brand-primary)', textShadow: '0 0 10px rgba(108,99,255,0.4)', background: 'rgba(108,99,255,0.1)', border: '1px solid rgba(108,99,255,0.3)', padding: '4px 12px', borderRadius: '12px' }}>✨ Deep Learning Suite</span>
+              <h2 className="section-title mt-4" style={{ color: '#fff', fontSize: '2.5rem', marginBottom: 'var(--space-4)' }}>
+                Handwritten Notes <br/><span className="text-gradient-teal">Digitalization & Plagiarism Scan</span>
+              </h2>
+              <p className="text-muted text-base mb-6" style={{ color: '#d1d5db', lineHeight: 1.7 }}>
+                Got piles of handwritten paper, notebook photos, or textbook scans? EduMarket's high-fidelity Gemini OCR suite processes layout lines, formulas, and diagrams instantly, outputting editable digital files with real-time plagiarism comparisons.
+              </p>
+              <div className="flex gap-4">
+                <Link to="/digitalizer" className="btn btn-primary btn-lg" style={{ boxShadow: '0 4px 14px rgba(108, 99, 255, 0.4)' }}>
+                  ⚡ Open AI Digitalizer
+                </Link>
+                <Link to="/upload" className="btn btn-secondary btn-lg" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.2)' }} onClick={handleUploadClick}>
+                  🔎 Scan for Plagiarism
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4 animate-fade-in-up">
+              <div className="card p-5" style={{ background: 'rgba(255, 255, 255, 0.03)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 'var(--border-radius-xl)' }}>
+                <div className="flex items-start gap-4">
+                  <div style={{ fontSize: '2.2rem', background: 'rgba(108, 99, 255, 0.15)', borderRadius: '12px', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>📷</div>
+                  <div>
+                    <h3 className="font-bold text-base mb-2" style={{ color: '#fff' }}>Instant OCR Digitalizer</h3>
+                    <p className="text-sm" style={{ color: '#9ca3af', lineHeight: 1.6 }}>Upload PDFs or images of physical notebook pages. Gemini extracts sentences, headings, formulas, and converts them to formatted digital Markdown files instantly.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card p-5" style={{ background: 'rgba(255, 255, 255, 0.03)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 'var(--border-radius-xl)' }}>
+                <div className="flex items-start gap-4">
+                  <div style={{ fontSize: '2.2rem', background: 'rgba(20, 184, 166, 0.15)', borderRadius: '12px', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>🛡️</div>
+                  <div>
+                    <h3 className="font-bold text-base mb-2" style={{ color: '#fff' }}>Copied Content Plagiarism Scan</h3>
+                    <p className="text-sm" style={{ color: '#9ca3af', lineHeight: 1.6 }}>Verify the originality of documents before posting or purchasing. See highlighted copy-paste segments, matched citation sources, and precise originality percentage bars.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="container divider"></div>
+
       {/* How It Works */}
       <section className="section container">
         <div className="section-header">

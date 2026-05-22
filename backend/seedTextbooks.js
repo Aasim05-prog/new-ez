@@ -19,10 +19,8 @@ const User = require('./models/User');
 const Note = require('./models/Note');
 
 // ─── NCERT Textbooks Data ───────────────────────────────────────────────────
-// Official PDFs hosted on ncert.nic.in (direct download links)
+// Currently disabled - no NCERT books to seed
 const NCERT_BOOKS = [
-  // Standard 1
-  { title: 'Marigold — English (Std 1)', subject: 'English', educationLevel: 'Std 1', pages: 120, thumbnail: 'https://ncert.nic.in/textbook/pdf/aeen101.jpg', fileUrl: 'https://ncert.nic.in/textbook/pdf/aeen1ps.zip', tags: ['ncert', 'english', 'class-1'] },
   { title: 'Rimjhim — Hindi (Std 1)', subject: 'Hindi', educationLevel: 'Std 1', pages: 104, thumbnail: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80', fileUrl: 'https://ncert.nic.in/textbook/pdf/ahhn1ps.zip', tags: ['ncert', 'hindi', 'class-1'] },
   { title: 'Math Magic (Std 1)', subject: 'Mathematics', educationLevel: 'Std 1', pages: 116, thumbnail: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80', fileUrl: 'https://ncert.nic.in/textbook/pdf/aemh1ps.zip', tags: ['ncert', 'mathematics', 'class-1'] },
 

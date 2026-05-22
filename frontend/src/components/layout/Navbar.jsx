@@ -219,6 +219,7 @@ const Navbar = ({ socket }) => {
         <nav className="flex items-center gap-6 hide-mobile">
           <Link to="/" className="text-sm font-medium text-muted hover:text-primary" style={{ transition: 'color var(--transition-base)' }}>Home</Link>
           <Link to="/browse" className="text-sm font-medium text-muted hover:text-primary" style={{ transition: 'color var(--transition-base)' }}>Browse Notes</Link>
+          <Link to="/digitalizer" className="text-sm font-medium text-muted hover:text-primary" style={{ transition: 'color var(--transition-base)' }}>AI Digitalizer</Link>
           {isAuthenticated && (
             <>
               <Link to="/upload" className="text-sm font-medium text-muted hover:text-primary" style={{ transition: 'color var(--transition-base)' }}>Upload</Link>
@@ -260,6 +261,7 @@ const Navbar = ({ socket }) => {
                       <Link to={`/profile/${user.username}`} className="nav-dropdown-item" onClick={() => setMenuOpen(false)}>👤 My Profile</Link>
                       <Link to="/dashboard" className="nav-dropdown-item" onClick={() => setMenuOpen(false)}>📊 Dashboard</Link>
                       <Link to="/upload" className="nav-dropdown-item" onClick={() => setMenuOpen(false)}>📤 Upload Notes</Link>
+                      <Link to="/digitalizer" className="nav-dropdown-item" onClick={() => setMenuOpen(false)}>✨ AI Digitalizer</Link>
                       <Link to="/chat" className="nav-dropdown-item" onClick={() => setMenuOpen(false)}>💬 Messages</Link>
                     </div>
                     <div style={{ borderTop: '1px solid var(--border-subtle)', padding: 'var(--space-2) 0' }}>
@@ -294,6 +296,7 @@ const Navbar = ({ socket }) => {
           <div className="flex flex-col gap-3">
             <Link to="/" className="text-sm font-medium p-2" onClick={() => setMobileMenuOpen(false)}>🏠 Home</Link>
             <Link to="/browse" className="text-sm font-medium p-2" onClick={() => setMobileMenuOpen(false)}>📚 Browse Notes</Link>
+            <Link to="/digitalizer" className="text-sm font-medium p-2" onClick={() => setMobileMenuOpen(false)}>✨ AI Digitalizer</Link>
             {isAuthenticated && (
               <>
                 <Link to="/upload" className="text-sm font-medium p-2" onClick={() => setMobileMenuOpen(false)}>📤 Upload</Link>

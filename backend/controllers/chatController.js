@@ -11,11 +11,11 @@ const getConversations = async (req, res) => {
     const conversations = await Conversation.find({
       participants: req.user._id,
     })
-      .populate('participants', 'fullName username avatar')
+      .populate('participants', 'fullName username avatar isOnline')
       .populate('noteId', 'title price')
       .sort({ updatedAt: -1 });
 
-    // Build response with last message and partner info
+    // Build response with last message, partner info, and unreadCount
     const response = await Promise.all(
       conversations.map(async (conv) => {
         const lastMsg = await Message.findOne({ conversationId: conv._id })
@@ -26,6 +26,13 @@ const getConversations = async (req, res) => {
           p => p._id.toString() !== req.user._id.toString()
         );
 
+        // Count unread messages for current user
+        const unreadCount = await Message.countDocuments({
+          conversationId: conv._id,
+          senderId: { $ne: req.user._id },
+          read: false,
+        });
+
         return {
           _id: conv._id,
           partner,
@@ -34,7 +41,9 @@ const getConversations = async (req, res) => {
             text: lastMsg.text,
             senderId: lastMsg.senderId,
             createdAt: lastMsg.createdAt,
+            read: lastMsg.read,
           } : null,
+          unreadCount,
           updatedAt: conv.updatedAt,
         };
       })
@@ -61,6 +70,12 @@ const getMessages = async (req, res) => {
     if (!conversation.participants.includes(req.user._id)) {
       return res.status(403).json({ message: 'Not authorized to view this conversation' });
     }
+
+    // Mark messages from the other user as read
+    await Message.updateMany(
+      { conversationId: req.params.conversationId, senderId: { $ne: req.user._id }, read: false },
+      { $set: { read: true } }
+    );
 
     const messages = await Message.find({ conversationId: req.params.conversationId })
       .populate('senderId', 'fullName username avatar')

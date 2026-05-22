@@ -15,6 +15,7 @@ import UserProfile from './pages/UserProfile';
 import ChatPage from './pages/ChatPage';
 import UploadNotes from './pages/UploadNotes';
 import ResetPassword from './pages/ResetPassword';
+import Digitalizer from './pages/Digitalizer';
 
 // Dynamic page title + scroll to top
 const PageManager = () => {
@@ -29,6 +30,7 @@ const PageManager = () => {
       '/upload': 'Upload Notes — EduMarket',
       '/chat': 'Messages — EduMarket',
       '/reset-password': 'Reset Password — EduMarket',
+      '/digitalizer': 'AI Notes Digitalizer — EduMarket',
     };
     const path = location.pathname;
     document.title = titles[path] 
@@ -79,6 +81,7 @@ function App() {
               <Route path="/chat/:userId" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
               <Route path="/upload" element={<ProtectedRoute><UploadNotes /></ProtectedRoute>} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/digitalizer" element={<Digitalizer />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

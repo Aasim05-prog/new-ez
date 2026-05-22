@@ -3,6 +3,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const { sendWelcomeEmail } = require('../utils/mailer');
 
 // In-memory reset token store (shared between forgot & reset)
 const resetTokens = new Map();
@@ -48,14 +49,42 @@ const registerUser = async (req, res) => {
     const { fullName, username, email, password, educationLevel } = req.body;
 
     if (!fullName || !username || !email || !password || !educationLevel) {
-      return res.status(400).json({ message: 'Please add all fields' });
+      return res.status(400).json({ message: 'Please fill in all required fields.' });
     }
 
-    // Check if user exists
-    const userExists = await User.findOne({ $or: [{ email }, { username: username.toLowerCase().replace(/\s/g, '_') }] });
+    // Email regex validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email address.' });
+    }
 
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists with that email or username' });
+    // Password strength verification
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
+    }
+
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasDigit = /\d/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+    if (!hasUppercase || !hasLowercase || !hasDigit || !hasSpecial) {
+      return res.status(400).json({
+        message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
+      });
+    }
+
+    // Check duplicate email
+    const userExistsByEmail = await User.findOne({ email });
+    if (userExistsByEmail) {
+      return res.status(400).json({ message: 'An account with this email address already exists.' });
+    }
+
+    // Check duplicate username
+    const formattedUsername = username.toLowerCase().replace(/\s/g, '_');
+    const userExistsByUsername = await User.findOne({ username: formattedUsername });
+    if (userExistsByUsername) {
+      return res.status(400).json({ message: 'This username is already taken. Please choose another one.' });
     }
 
     // Hash password
@@ -65,16 +94,19 @@ const registerUser = async (req, res) => {
     // Create user
     const user = await User.create({
       fullName,
-      username: username.toLowerCase().replace(/\s/g, '_'),
+      username: formattedUsername,
       email,
       passwordHash: hashedPassword,
       educationLevel,
     });
 
     if (user) {
+      // Dispatch welcome email asynchronously
+      sendWelcomeEmail(user).catch(err => console.error('Error sending welcome email:', err));
+
       res.status(201).json(buildUserResponse(user, generateToken(user._id)));
     } else {
-      res.status(400).json({ message: 'Invalid user data' });
+      res.status(400).json({ message: 'Invalid user registration data.' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });

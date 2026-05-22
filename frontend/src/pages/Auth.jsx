@@ -21,6 +21,19 @@ const Auth = () => {
   const [submitting, setSubmitting] = useState(false);
   const [forgotDevToken, setForgotDevToken] = useState('');
 
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    label: '',
+    color: '#94a3b8',
+    checks: {
+      length: false,
+      upper: false,
+      lower: false,
+      number: false,
+      special: false
+    }
+  });
+
   const { login, register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,6 +48,50 @@ const Auth = () => {
     }
   }, [from, isAuthenticated, navigate]);
 
+  // Real-time password strength evaluation
+  useEffect(() => {
+    const password = formData.password || '';
+    if (!password) {
+      setPasswordStrength({
+        score: 0,
+        label: '',
+        color: '#94a3b8',
+        checks: { length: false, upper: false, lower: false, number: false, special: false }
+      });
+      return;
+    }
+
+    const checks = {
+      length: password.length >= 8,
+      upper: /[A-Z]/.test(password),
+      lower: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      special: /[^A-Za-z0-9]/.test(password)
+    };
+
+    const passedCount = Object.values(checks).filter(Boolean).length;
+    
+    let score = 0;
+    let label = '';
+    let color = '#94a3b8';
+
+    if (passedCount <= 2) {
+      score = 20;
+      label = 'Weak 🔴';
+      color = '#ef4444';
+    } else if (passedCount <= 4) {
+      score = 60;
+      label = 'Medium 🟡';
+      color = '#f59e0b';
+    } else {
+      score = 100;
+      label = 'Strong 🔥';
+      color = '#10b981';
+    }
+
+    setPasswordStrength({ score, label, color, checks });
+  }, [formData.password]);
+
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     setError('');
@@ -44,11 +101,20 @@ const Auth = () => {
     e.preventDefault();
     setError('');
 
+    // Check empty fields
     if (isLogin) {
       if (!formData.email || !formData.password) {
-        setError('Please fill in all fields');
+        setError('Please fill in all fields.');
         return;
       }
+      
+      // Email format regex
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError('Please enter a valid email address.');
+        return;
+      }
+
       setSubmitting(true);
       const result = await login({ email: formData.email, password: formData.password });
       setSubmitting(false);
@@ -59,13 +125,23 @@ const Auth = () => {
       }
     } else {
       if (!formData.fullName || !formData.username || !formData.email || !formData.password || !formData.educationLevel) {
-        setError('Please fill in all fields');
+        setError('Please fill in all required fields.');
         return;
       }
-      if (formData.password.length < 6) {
-        setError('Password must be at least 6 characters');
+
+      // Email format regex
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError('Please enter a valid email address.');
         return;
       }
+
+      // Enforce strong password
+      if (passwordStrength.score < 100) {
+        setError('Please ensure your password meets all strong password requirements.');
+        return;
+      }
+
       setSubmitting(true);
       const result = await register(formData);
       setSubmitting(false);
@@ -223,6 +299,40 @@ const Auth = () => {
                   {showPassword ? '🙈' : '👁️'}
                 </button>
               </div>
+              
+              {!isLogin && formData.password && (
+                <div className="mt-2 text-xs flex flex-col gap-2 p-3 rounded-lg animate-slide-down" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="flex justify-between items-center">
+                    <span style={{ color: 'var(--text-muted)' }}>Password Strength:</span>
+                    <span style={{ color: passwordStrength.color, fontWeight: 700 }}>{passwordStrength.label}</span>
+                  </div>
+                  <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+                    <div style={{ 
+                      width: `${passwordStrength.score}%`, 
+                      height: '100%', 
+                      background: passwordStrength.color, 
+                      transition: 'width 0.4s ease, background 0.4s ease' 
+                    }}></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                    <div style={{ color: passwordStrength.checks.length ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>{passwordStrength.checks.length ? '✓' : '○'}</span> Min 8 characters
+                    </div>
+                    <div style={{ color: passwordStrength.checks.upper ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>{passwordStrength.checks.upper ? '✓' : '○'}</span> 1 Uppercase letter
+                    </div>
+                    <div style={{ color: passwordStrength.checks.lower ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>{passwordStrength.checks.lower ? '✓' : '○'}</span> 1 Lowercase letter
+                    </div>
+                    <div style={{ color: passwordStrength.checks.number ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>{passwordStrength.checks.number ? '✓' : '○'}</span> 1 Number
+                    </div>
+                    <div style={{ color: passwordStrength.checks.special ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>{passwordStrength.checks.special ? '✓' : '○'}</span> 1 Special char
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <button type="submit" className="btn btn-primary btn-lg mt-2 w-full animate-pulse-glow" style={{ fontSize: '1rem' }} disabled={submitting}>

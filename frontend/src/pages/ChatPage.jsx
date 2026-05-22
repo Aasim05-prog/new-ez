@@ -106,26 +106,43 @@ const ChatPage = () => {
           return [...prev, msg];
         });
       }
-      // Update last message in conversation list
-      setConvs(prev => prev.map(c =>
-        c._id === msg.conversationId
-          ? { ...c, lastMessage: { text: msg.text, senderId: msg.senderId, createdAt: msg.createdAt } }
-          : c
-      ));
+      // Update last message in conversation list & increment unread count if not active
+      setConvs(prev => prev.map(c => {
+        if ((c._id || c.id) === msg.conversationId) {
+          const isCurrentActive = activeChat === msg.conversationId;
+          return { 
+            ...c, 
+            lastMessage: { text: msg.text, senderId: msg.senderId, createdAt: msg.createdAt },
+            unreadCount: isCurrentActive ? 0 : (c.unreadCount || 0) + 1
+          };
+        }
+        return c;
+      }));
     };
 
-    const handleTyping = ({ userId: typingUserId, isTyping }) => {
-      if (typingUserId !== (user?._id || user?.id)) {
+    const handleTyping = ({ conversationId, userId: typingUserId, isTyping }) => {
+      if (conversationId === activeChat && typingUserId !== (user?._id || user?.id)) {
         setTyping(isTyping);
       }
     };
 
+    const handleUserStatus = ({ userId: statusUserId, isOnline }) => {
+      setConvs(prev => prev.map(c => {
+        if (c.partner && (c.partner._id === statusUserId || c.partner.id === statusUserId)) {
+          return { ...c, partner: { ...c.partner, isOnline } };
+        }
+        return c;
+      }));
+    };
+
     socket.on('newMessage', handleNewMessage);
     socket.on('userTyping', handleTyping);
+    socket.on('userStatus', handleUserStatus);
 
     return () => {
       socket.off('newMessage', handleNewMessage);
       socket.off('userTyping', handleTyping);
+      socket.off('userStatus', handleUserStatus);
     };
   }, [activeChat, user]);
 
@@ -213,7 +230,14 @@ const ChatPage = () => {
                 <button 
                   key={conv._id || conv.id} 
                   className={`chat-list-item ${isActive ? 'active' : ''}`} 
-                  onClick={() => { setActiveChat(conv._id || conv.id); setShowList(false); }}
+                  onClick={() => { 
+                    setActiveChat(conv._id || conv.id); 
+                    setShowList(false); 
+                    // Clear unread count locally when active
+                    setConvs(prev => prev.map(c => 
+                      (c._id || c.id) === (conv._id || conv.id) ? { ...c, unreadCount: 0 } : c
+                    ));
+                  }}
                   style={{ 
                     display: 'flex', alignItems: 'center', gap: '12px', 
                     width: '100%', padding: '14px 16px', border: 'none', cursor: 'pointer',
@@ -222,10 +246,29 @@ const ChatPage = () => {
                     transition: 'all var(--transition-fast)',
                   }}
                 >
-                  <div className="avatar" style={{ background: getAvatarColor(p.username), flexShrink: 0 }}>{getInitials(p.fullName)}</div>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <div className="avatar" style={{ background: getAvatarColor(p.username) }}>{getInitials(p.fullName)}</div>
+                    {p.isOnline && (
+                      <span style={{
+                        position: 'absolute', bottom: '0', right: '0',
+                        width: '10px', height: '10px', borderRadius: '50%',
+                        background: '#10B981', border: '2px solid white'
+                      }}></span>
+                    )}
+                  </div>
                   <div className="flex flex-col" style={{ overflow: 'hidden', flex: 1, textAlign: 'left' }}>
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{p.fullName}</span>
+                      {conv.unreadCount > 0 && (
+                        <span style={{
+                          background: '#ef4444', color: 'white', borderRadius: '50%',
+                          width: '18px', height: '18px', fontSize: '0.65rem', fontWeight: 700,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          marginLeft: '8px', flexShrink: 0
+                        }}>
+                          {conv.unreadCount}
+                        </span>
+                      )}
                     </div>
                     {last && <span className="text-xs text-muted truncate mt-1">{last.senderId === currentUserId || last.senderId === 'currentUser' ? 'You: ' : ''}{last.text}</span>}
                   </div>

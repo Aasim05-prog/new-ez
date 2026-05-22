@@ -219,6 +219,12 @@ The JSON schema must be exactly as follows:
 
       navigate('/dashboard');
     } catch (err) {
+      if (err.message && err.message.includes('Rejected')) {
+        setPublishError(err.message);
+        setPublishing(false);
+        return;
+      }
+      
       console.warn('API publish failed, saving locally:', err.message);
       setPublishError('');
       
@@ -241,7 +247,7 @@ The JSON schema must be exactly as follows:
         plagiarismScore: aiResult?.plagiarismScore || 100,
         originalityReport: aiResult?.originalityReport || '',
         createdAt: new Date().toISOString().split('T')[0],
-        sellerId: user?.id,
+        sellerId: user?.id || user?._id,
       };
       addUploadedNote(note);
       navigate('/dashboard');

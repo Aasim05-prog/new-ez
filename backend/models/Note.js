@@ -63,6 +63,9 @@ const noteSchema = new mongoose.Schema({
     completeness: { type: Number, default: 0 },
     structure: { type: Number, default: 0 },
     formulas: { type: Number, default: 0 },
+    readability: { type: Number, default: 0 },
+    handwritingClarity: { type: Number, default: 0 },
+    plagiarismImpact: { type: Number, default: 0 },
   },
   shortSummary: {
     type: String,
@@ -75,6 +78,18 @@ const noteSchema = new mongoose.Schema({
   plagiarismScore: {
     type: Number,
     default: 100,
+  },
+  plagiarismDetails: {
+    originalityScore: { type: Number, default: 100 },
+    matchedSources: [{
+      title: { type: String },
+      url: { type: String },
+      percentage: { type: Number }
+    }],
+    highlightedCopiedContent: [{
+      text: { type: String },
+      source: { type: String }
+    }]
   },
   originalityReport: {
     type: String,

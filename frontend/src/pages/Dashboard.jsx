@@ -144,10 +144,32 @@ const Dashboard = () => {
         ))}
       </div>
 
+      {/* AI Digitalizer Banner */}
+      <div className="card relative overflow-hidden mb-12 animate-fade-in-up" style={{ 
+        padding: 'var(--space-8)', 
+        background: 'linear-gradient(135deg, rgba(108, 99, 255, 0.08), rgba(20, 184, 166, 0.05))', 
+        border: '1px solid var(--border-medium)', 
+        borderRadius: 'var(--border-radius-2xl)',
+      }}>
+        {/* Glow */}
+        <div style={{ position: 'absolute', top: '-50%', right: '-10%', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(108,99,255,0.15), transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }}></div>
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+          <div style={{ flex: '1 1 500px' }}>
+            <span className="section-eyebrow mb-2" style={{ color: 'var(--brand-primary)' }}>⚡ Intelligent Digitalization Tool</span>
+            <h2 className="font-extrabold text-xl mb-2" style={{ color: 'var(--text-primary)' }}>Have Handwritten Class Scans or PDF Notebooks?</h2>
+            <p className="text-muted text-sm mb-0" style={{ lineHeight: 1.6 }}>Convert raw images, camera captures, or handwriting drafts into digital, editable Markdown notes instantly with Gemini. Download, print, or sell them on the marketplace in one click!</p>
+          </div>
+          <Link to="/digitalizer" className="btn btn-primary flex items-center gap-2 animate-pulse-glow" style={{ padding: '0.75rem 1.5rem' }}>
+            ✨ Try AI Digitalizer Now →
+          </Link>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-1 mb-8 p-1 rounded-xl dashboard-tabs" style={{ background: 'var(--bg-elevated)', display: 'inline-flex', width: 'auto', maxWidth: '100%' }}>
         {[
           { id: 'uploaded', label: '📤 My Uploaded Notes', count: myNotes.length },
+          { id: 'plagiarism', label: '🛡️ Plagiarism Reports', count: myNotes.length },
           { id: 'purchased', label: '📥 My Purchased Notes', count: purchasedList.length || purchasedNotes.length },
           { id: 'analysis', label: '🧠 AI Learning Analysis', count: weakSubjects.length > 0 ? `${weakSubjects.length} Focus Areas` : 'Optimal' },
         ].map(tab => (
@@ -226,6 +248,92 @@ const Dashboard = () => {
               <Link to="/upload" className="btn btn-primary animate-pulse-glow">Upload Your First Notes</Link>
             </div>
           )}
+        </section>
+      )}
+
+      {/* Plagiarism Scan Reports Tab */}
+      {activeTab === 'plagiarism' && (
+        <section className="animate-fade-in flex flex-col gap-6">
+          <div className="card p-6" style={{ background: 'linear-gradient(135deg, rgba(20,30,50,0.95), rgba(30,20,40,0.95))', color: '#fff', borderRadius: 'var(--border-radius-xl)' }}>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="font-extrabold text-2xl mb-1 flex items-center gap-2">🛡️ AI Plagiarism Scan Dashboard</h2>
+                <p className="text-sm opacity-90 leading-relaxed max-w-2xl">Ensure authentic and copyrighted educational uploads. The system scans all documents against public resources, peer uploads, and books upon note creation.</p>
+              </div>
+              <Link to="/upload" className="btn btn-primary btn-sm">Scan New File</Link>
+            </div>
+          </div>
+
+          <div className="card p-6" style={{ background: 'var(--bg-surface)' }}>
+            <h3 className="font-bold text-md mb-4 text-gradient">📑 Document Originality Status</h3>
+            {myNotes.length === 0 ? (
+              <p className="text-sm text-muted text-center py-6">You have not uploaded any notes yet to scan.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm" style={{ borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--border-medium)', color: 'var(--text-muted)', fontWeight: 600 }}>
+                      <th style={{ padding: '0.75rem 1rem' }}>Note Title</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Subject</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Originality</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Matches Found</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {myNotes.map((note, idx) => {
+                      const score = note.plagiarismDetails?.originalityScore ?? 100;
+                      const sourcesCount = note.plagiarismDetails?.matchedSources?.length ?? 0;
+                      
+                      let badgeColor = '#10B981'; // Green
+                      let statusText = 'Excellent (Original)';
+                      let statusBg = 'rgba(16, 185, 129, 0.08)';
+                      
+                      if (score < 50) {
+                        badgeColor = '#EF4444'; // Red
+                        statusText = 'High Copy Warning';
+                        statusBg = 'rgba(239, 68, 68, 0.08)';
+                      } else if (score < 80) {
+                        badgeColor = '#F59E0B'; // Yellow
+                        statusText = 'Moderate Copy';
+                        statusBg = 'rgba(245, 158, 11, 0.08)';
+                      }
+
+                      return (
+                        <tr key={note._id || note.id || idx} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                          <td style={{ padding: '1rem', fontWeight: 600 }}>{note.title}</td>
+                          <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>{note.subject}</td>
+                          <td style={{ padding: '1rem' }}>
+                            <div className="flex items-center gap-2">
+                              <div style={{ width: '60px', height: '6px', background: 'var(--bg-elevated)', borderRadius: '3px', overflow: 'hidden' }}>
+                                <div style={{ width: `${score}%`, height: '100%', background: badgeColor }}></div>
+                              </div>
+                              <span className="font-bold" style={{ color: badgeColor }}>{score}%</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>{sourcesCount} sources</td>
+                          <td style={{ padding: '1rem' }}>
+                            <span style={{ 
+                              padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600,
+                              color: badgeColor, background: statusBg 
+                            }}>
+                              {statusText}
+                            </span>
+                          </td>
+                          <td style={{ padding: '1rem' }}>
+                            <Link to={`/note/${note._id || note.id}`} className="text-xs font-bold" style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}>
+                              Details →
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </section>
       )}
 
