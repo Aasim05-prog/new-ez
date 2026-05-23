@@ -4,6 +4,7 @@ const { createAndEmit } = require('./notificationController');
 const { analyzePlagiarism } = require('../utils/plagiarismDetector');
 const { validateNoteContent } = require('../utils/contentValidator');
 const { improveOCRText, validateOCRQuality } = require('../utils/ocrImprover');
+const { runAsyncPlagiarismCheck } = require('../services/plagiarismService');
 
 // @desc    Get all notes (with search, filter, sort, pagination)
 // @route   GET /api/notes
@@ -109,10 +110,26 @@ const createNote = async (req, res) => {
       return res.status(400).json({ message: 'Please fill in all required fields' });
     }
 
+    // Validate field lengths and bounds
+    if (title.trim().length < 3 || title.length > 200) {
+      return res.status(400).json({ message: 'Title must be 3-200 characters' });
+    }
+    if (description.trim().length < 10 || description.length > 5000) {
+      return res.status(400).json({ message: 'Description must be 10-5000 characters' });
+    }
+    const priceNum = parseFloat(price);
+    if (isNaN(priceNum) || priceNum < 0 || priceNum > 50000) {
+      return res.status(400).json({ message: 'Price must be a number between 0 and 50000' });
+    }
+    const pagesNum = parseInt(pages);
+    if (isNaN(pagesNum) || pagesNum < 1 || pagesNum > 5000) {
+      return res.status(400).json({ message: 'Pages must be a number between 1 and 5000' });
+    }
+
     // Validate content is actually study notes (not resume, etc)
     const contentValidation = validateNoteContent(
       digitalizedContent || description,
-      files?.file?.[0]?.originalname || 'notes.pdf',
+      req.files?.file?.[0]?.originalname || 'notes.pdf',
       { allowLinks: true }
     );
     
@@ -197,7 +214,7 @@ const createNote = async (req, res) => {
       });
     }
 
-    // Parse qualityAnalysis if provided as a JSON string
+    // Parse qualityAnalysis if provided as a JSON string from the frontend AI step
     let parsedQualityAnalysis = { clarity: 0, completeness: 0, structure: 0, formulas: 0 };
     if (qualityAnalysis) {
       try {
@@ -207,37 +224,50 @@ const createNote = async (req, res) => {
       }
     }
 
-    // Generate AI Quality Scoring & Plagiarism Details with Advanced Detection
+    // Quality scoring: random values are fallbacks ONLY — used when Gemini AI
+    // did not provide a value. Final merged values take AI data as priority.
     const isNoteHandwritten = isHandwritten === 'true' || isHandwritten === true;
-    const clarity = Math.floor(Math.random() * 15) + 80; // 80 - 95
-    const completenessVal = Math.floor(Math.random() * 15) + 80;
-    const structure = Math.floor(Math.random() * 15) + 80;
-    const formulas = Math.floor(Math.random() * 20) + 75;
-    const readability = Math.floor(Math.random() * 15) + 82;
-    const handwritingClarity = isNoteHandwritten ? Math.floor(Math.random() * 15) + 78 : 100;
-    
-    const finalQualityScore = Math.floor((clarity + completenessVal + structure + readability + handwritingClarity) / 5);
-    
+    const fallbackClarity          = Math.floor(Math.random() * 15) + 80; // 80–95
+    const fallbackCompleteness     = Math.floor(Math.random() * 15) + 80;
+    const fallbackStructure        = Math.floor(Math.random() * 15) + 80;
+    const fallbackFormulas         = Math.floor(Math.random() * 20) + 75;
+    const fallbackReadability      = Math.floor(Math.random() * 15) + 82;
+    const fallbackHandwriting      = isNoteHandwritten ? Math.floor(Math.random() * 15) + 78 : 100;
+
     // Advanced Plagiarism Detection with Content Analysis
-    const contentToAnalyze = `${title} ${description} ${digitalizedContent || ''}`;
+    // Fetch existing notes in the same subject for real cross-comparison
+    const existingNotes = await Note.find({ subject })
+      .select('title description digitalizedContent')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
     const plagiarismAnalysis = analyzePlagiarism(
       digitalizedContent || description,
       description,
-      title
+      title,
+      existingNotes
     );
-    
-    const originalityScore = plagiarismAnalysis.originalityScore;
-    const plagiarismPercentage = plagiarismAnalysis.plagiarismPercentage;
-    const matchedSources = plagiarismAnalysis.matchedSources;
-    const highlightedCopiedContent = plagiarismAnalysis.highlightedCopiedContent;
 
-    const finalClarity = parsedQualityAnalysis.clarity || clarity;
-    const finalCompleteness = parsedQualityAnalysis.completeness || completenessVal;
-    const finalStructure = parsedQualityAnalysis.structure || structure;
-    const finalFormulas = parsedQualityAnalysis.formulas || formulas;
-    const finalReadability = parsedQualityAnalysis.readability || readability;
-    const finalHandwritingClarity = parsedQualityAnalysis.handwritingClarity || handwritingClarity;
-    const finalPlagiarismImpact = Math.floor(plagiarismPercentage * 0.8);
+    const originalityScore           = plagiarismAnalysis.originalityScore;
+    const plagiarismPercentage        = plagiarismAnalysis.plagiarismPercentage;
+    const matchedSources              = plagiarismAnalysis.matchedSources;
+    const highlightedCopiedContent    = plagiarismAnalysis.highlightedCopiedContent;
+
+    // Merge: AI values take priority; random fallback only when AI gave nothing (0 / falsy)
+    const finalClarity           = parsedQualityAnalysis.clarity       || fallbackClarity;
+    const finalCompleteness      = parsedQualityAnalysis.completeness  || fallbackCompleteness;
+    const finalStructure         = parsedQualityAnalysis.structure     || fallbackStructure;
+    const finalFormulas          = parsedQualityAnalysis.formulas      || fallbackFormulas;
+    const finalReadability       = parsedQualityAnalysis.readability   || fallbackReadability;
+    const finalHandwritingClarity= parsedQualityAnalysis.handwritingClarity || fallbackHandwriting;
+    const finalPlagiarismImpact  = Math.floor(plagiarismPercentage * 0.8);
+
+    // Compute overall quality score AFTER merging so it reflects real AI data
+    const computedQualityScore = Math.floor(
+      (finalClarity + finalCompleteness + finalStructure + finalReadability + finalHandwritingClarity) / 5
+    );
+
 
     const note = await Note.create({
       title,
@@ -250,7 +280,7 @@ const createNote = async (req, res) => {
       isHandwritten: isNoteHandwritten,
       hasDigitalized: hasDigitalized === 'true' || hasDigitalized === true,
       digitalizedContent: digitalizedContent || '',
-      qualityScore: Number(qualityScore || finalQualityScore),
+      qualityScore: Number(qualityScore || computedQualityScore),
       qualityAnalysis: {
         clarity: finalClarity,
         completeness: finalCompleteness,
@@ -268,10 +298,12 @@ const createNote = async (req, res) => {
         matchedSources,
         highlightedCopiedContent,
         detectedPatterns: plagiarismAnalysis.detectedPatterns,
-        riskLevel: plagiarismAnalysis.risk,
-        confidence: plagiarismAnalysis.confidence
+        riskLevel: plagiarismAnalysis.riskLevel,
+        confidence: plagiarismAnalysis.confidence,
+        checkedAgainst: plagiarismAnalysis.checkedAgainst,
+        detectionMethod: plagiarismAnalysis.detectionMethod,
       },
-      originalityReport: originalityReport || `Originality Analysis: ${originalityScore}% Unique Content. Risk Level: ${plagiarismAnalysis.risk}. ${matchedSources.length > 0 ? 'Found some matches in academic sources.' : 'High originality - minimal plagiarism detected.'}`,
+      originalityReport: originalityReport || plagiarismAnalysis.message,
       thumbnail,
       fileUrl,
       tags: parsedTags,
@@ -282,7 +314,19 @@ const createNote = async (req, res) => {
 
     const populated = await note.populate('sellerId', 'fullName username avatar rating');
 
-    res.status(201).json(populated);
+    // Run advanced plagiarism check asynchronously (non-blocking)
+    // This will check against web sources, academic databases, and APIs
+    setImmediate(() => {
+      runAsyncPlagiarismCheck(note._id).catch(err => {
+        console.error(`[Async Plagiarism] Failed for note ${note._id}:`, err.message);
+      });
+    });
+
+    res.status(201).json({
+      ...populated.toObject(),
+      plagiarismCheckStatus: 'IN_PROGRESS',
+      plagiarismCheckMessage: 'Advanced plagiarism check running in background. Results will be available in 30-60 seconds.'
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -386,6 +430,13 @@ const getNotesBySeller = async (req, res) => {
 // @desc    Purchase a note
 // @route   POST /api/notes/:id/purchase
 // @access  Private
+// NOTE: This endpoint is for FREE notes only (price = 0 or isTextbook = true).
+// PAID notes must go through Razorpay payment flow first:
+//   1. Frontend calls /api/payments/create-order to create Razorpay order
+//   2. User completes payment in Razorpay checkout
+//   3. Frontend calls /api/payments/verify with payment signature
+//   4. Payment verification endpoint calls this purchase logic internally
+// This endpoint provides a direct purchase route for free/textbook content only.
 const purchaseNote = async (req, res) => {
   try {
     const note = await Note.findById(req.params.id);
@@ -394,11 +445,19 @@ const purchaseNote = async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
+    // CRITICAL: Prevent direct purchase of paid notes (must use Razorpay)
+    if (note.price > 0 && !note.isTextbook) {
+      return res.status(400).json({
+        message: 'This is a paid note. Please use the Razorpay payment system to purchase it.',
+        requiresPayment: true,
+      });
+    }
+
     const user = await User.findById(req.user._id);
 
-    // Check if already purchased
+    // Idempotent: check if already purchased
     if (user.purchasedNotes.includes(note._id)) {
-      return res.status(400).json({ message: 'Note already purchased' });
+      return res.status(400).json({ message: 'Note already in your library' });
     }
 
     // Add to purchased notes

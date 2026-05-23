@@ -6,7 +6,7 @@ import NoteCard from '../components/ui/NoteCard';
 
 const NoteDetail = () => {
   const { id } = useParams();
-  const { user, purchaseNote, isNotePurchased, isAuthenticated } = useAuth();
+  const { user, purchaseNote, markPurchased, isNotePurchased, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [note, setNote] = useState(null);
   const [relatedNotes, setRelatedNotes] = useState([]);
@@ -141,8 +141,8 @@ const NoteDetail = () => {
               razorpay_signature: response.razorpay_signature,
               noteId,
             });
-            // Refresh auth context to update purchasedNotes
-            await purchaseNote(noteId);
+            // Backend verify already recorded the purchase — only update local state
+            markPurchased(noteId);
             alert('🎉 Payment successful! Note unlocked.');
           } catch (err) {
             alert('Payment verification failed: ' + err.message);
@@ -301,11 +301,31 @@ const NoteDetail = () => {
             <div className="card p-5" style={{ background: 'rgba(16, 185, 129, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div className="flex justify-between items-center mb-3">
                 <span className="text-xs text-muted uppercase tracking-wider font-bold">🛡️ Plagiarism Scan</span>
-                <span className="badge badge-success" style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>{note.plagiarismScore || 98}% Original</span>
+                <span className={`badge ${(note.plagiarismScore ?? 100) >= 80 ? 'badge-success' : (note.plagiarismScore ?? 100) >= 50 ? 'badge-warning' : 'badge-danger'}`} style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
+                  {note.plagiarismScore != null ? `${note.plagiarismScore}% Original` : 'Not Analyzed'}
+                </span>
               </div>
               <p className="text-xs text-muted" style={{ lineHeight: 1.6 }}>
-                {note.originalityReport || 'Validated against academic note repositories. Highly original compliance suitable for student exams.'}
+                {note.originalityReport || 'Plagiarism analysis will run when this note is uploaded. Results include cross-comparison against existing notes in the database.'}
               </p>
+              {note.plagiarismDetails?.checkedAgainst > 0 && (
+                <p className="text-xs text-muted mt-2" style={{ lineHeight: 1.4, opacity: 0.7 }}>
+                  📊 Checked against {note.plagiarismDetails.checkedAgainst} source(s) | Confidence: {note.plagiarismDetails.confidence ?? 0}% | Method: {note.plagiarismDetails.detectionMethod === 'DATABASE_CROSS_REFERENCE' ? 'Database Cross-Reference' : note.plagiarismDetails.detectionMethod === 'DATABASE_AND_WEB' ? 'Database + Web Sources' : 'Local Analysis'}
+                </p>
+              )}
+              {note.plagiarismDetails?.matchedSources?.length > 0 && (
+                <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                  <span className="text-xs font-bold text-muted uppercase tracking-wider">⚠️ Matched Sources:</span>
+                  {note.plagiarismDetails.matchedSources.slice(0, 3).map((source, idx) => (
+                    <div key={idx} className="flex justify-between items-center mt-2 text-xs">
+                      <span className="text-muted truncate" style={{ maxWidth: '70%' }}>{source.title}</span>
+                      <span className={`badge ${source.percentage >= 50 ? 'badge-danger' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.2rem 0.5rem' }}>
+                        {source.percentage}% match
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

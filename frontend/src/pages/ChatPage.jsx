@@ -196,13 +196,13 @@ const ChatPage = () => {
 
   return (
     <div className="container min-h-screen" style={{ paddingTop: '10vh', paddingBottom: 'var(--space-8)' }}>
-      <div className="chat-layout card animate-fade-in" style={{ height: 'calc(100vh - 140px)', overflow: 'hidden', border: '1px solid var(--border-medium)' }}>
+      <div className="chat-layout card animate-fade-in" style={{ display: 'flex', height: 'calc(100vh - 140px)', overflow: 'hidden', border: '1px solid var(--border-medium)' }}>
         {/* Sidebar */}
-        <div className={`chat-sidebar ${showList ? 'show-mobile' : ''}`} style={{ background: 'var(--bg-surface)', borderRight: '1px solid var(--border-subtle)' }}>
-          <div className="chat-sidebar-header" style={{ background: '#fff', borderBottom: '1px solid var(--border-subtle)', padding: '1.25rem 1.5rem' }}>
+        <div className={`chat-sidebar ${showList ? 'show-mobile' : ''}`} style={{ width: '100%', maxWidth: '320px', display: 'flex', flexDirection: 'column', background: 'var(--bg-surface)', borderRight: '1px solid var(--border-subtle)' }}>
+          <div className="chat-sidebar-header" style={{ background: '#fff', borderBottom: '1px solid var(--border-subtle)', padding: '1.25rem 1.5rem', flexShrink: 0 }}>
             <h2 className="font-bold text-xl" style={{ color: 'var(--text-primary)' }}>💬 Messages</h2>
           </div>
-          <div className="chat-list" style={{ overflowY: 'auto', flex: 1 }}>
+          <div className="chat-list" style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
             {loading ? (
               <div className="p-4 flex flex-col gap-3">
                 {[1, 2, 3].map(i => (
@@ -279,7 +279,7 @@ const ChatPage = () => {
         </div>
 
         {/* Main Chat Area */}
-        <div className="chat-main" style={{ display: 'flex', flexDirection: 'column', background: '#fff' }}>
+        <div className="chat-main" style={{ display: 'flex', flexDirection: 'column', flex: 1, background: '#fff', minWidth: 0 }}>
           {activeConv && partner ? (
             <>
               {/* Chat Header */}
@@ -351,7 +351,7 @@ const ChatPage = () => {
               </div>
 
               {/* Input */}
-              <div className="chat-input-bar" style={{ 
+              <div className="chat-input-area" style={{ 
                 padding: '14px 20px', borderTop: '1px solid var(--border-subtle)', 
                 background: '#fff', display: 'flex', gap: '10px', alignItems: 'center'
               }}>

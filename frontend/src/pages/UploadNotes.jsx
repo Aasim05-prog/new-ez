@@ -428,9 +428,13 @@ The JSON schema must be exactly as follows:
                 <div className="card p-5" style={{ background: 'rgba(16, 185, 129, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
                   <div className="flex justify-between items-center mb-3">
                     <span className="text-xs text-muted uppercase tracking-wider font-bold">🛡️ Plagiarism Scan</span>
-                    <span className="badge badge-success" style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>{aiResult?.plagiarismScore || 98}% Original</span>
+                    <span className={`badge ${(aiResult?.plagiarismScore ?? 100) >= 80 ? 'badge-success' : (aiResult?.plagiarismScore ?? 100) >= 50 ? 'badge-warning' : 'badge-danger'}`} style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
+                      {aiResult?.plagiarismScore != null ? `${aiResult.plagiarismScore}% Original` : 'Pending'}
+                    </span>
                   </div>
-                  <p className="text-xs text-muted" style={{ lineHeight: 1.6 }}>{aiResult?.originalityReport || 'Scanned against standard academic repositories. Safe for student study.'}</p>
+                  <p className="text-xs text-muted" style={{ lineHeight: 1.6 }}>
+                    {aiResult?.originalityReport || 'Full plagiarism analysis will run on the server after upload. Content will be cross-compared against existing notes in the database.'}
+                  </p>
                 </div>
               </div>
 

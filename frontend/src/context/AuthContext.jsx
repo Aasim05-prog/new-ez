@@ -134,6 +134,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Used after Razorpay payment verify — backend already recorded the purchase,
+  // so we only need to update local state without a redundant API call.
+  const markPurchased = (noteId) => {
+    if (!purchasedNotes.includes(noteId)) {
+      setPurchasedNotes(prev => [...prev, noteId]);
+    }
+  };
+
   const isNotePurchased = (noteId) => {
     return purchasedNotes.includes(noteId) || purchasedNotes.includes(String(noteId));
   };
@@ -154,6 +162,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     purchaseNote,
+    markPurchased,
     isNotePurchased,
     purchasedNotes,
     uploadedNotes,

@@ -17,11 +17,12 @@ const {
 
 // Public routes
 router.get('/', getAllNotes);
-router.get('/seller/:sellerId', getNotesBySeller);
 
-// Protected routes (must be before /:id to avoid ObjectId conflict)
+// Protected routes (MUST be before /:id to prevent 'purchased' being parsed as an ObjectId)
 router.get('/purchased', protect, getPurchasedNotes);
 
+// Public routes
+router.get('/seller/:sellerId', getNotesBySeller);
 router.get('/:id', getNoteById);
 
 // Protected routes
@@ -48,7 +49,11 @@ router.put(
 );
 
 router.delete('/:id', protect, deleteNote);
+
+// PURCHASE ENDPOINT: For free notes only (price = 0)
+// Paid notes MUST use Razorpay payment flow via /api/payments/create-order & verify
 router.post('/:id/purchase', protect, purchaseNote);
+
 router.post('/:id/review', protect, reviewNote);
 router.get('/:id/reviews', getNoteReviews);
 

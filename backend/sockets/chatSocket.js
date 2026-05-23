@@ -136,9 +136,11 @@ const setupChatSocket = (io) => {
       }
     });
 
-    // Typing indicator
+    // Typing indicator — include conversationId so the frontend can filter
+    // by active conversation (prevents showing indicator in the wrong chat)
     socket.on('typing', ({ conversationId, isTyping }) => {
       socket.to(conversationId).emit('userTyping', {
+        conversationId,
         userId: socket.userId,
         isTyping,
       });

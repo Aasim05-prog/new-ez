@@ -40,6 +40,7 @@ const apiFetch = async (endpoint, options = {}) => {
 
   const config = {
     method,
+    signal: AbortSignal.timeout(10000),
     headers: buildHeaders(auth, isFormData),
   };
 

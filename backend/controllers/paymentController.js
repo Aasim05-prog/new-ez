@@ -17,6 +17,12 @@ const getRazorpay = () => {
 // @desc    Create a Razorpay order for a note purchase
 // @route   POST /api/payments/create-order
 // @access  Private
+// PAYMENT FLOW: For PAID notes only. Free notes should use POST /api/notes/:id/purchase
+// This endpoint:
+//   1. Checks if the note is free → rejects with "use purchase endpoint" message
+//   2. Checks if note is already purchased → prevents duplicate purchases
+//   3. Creates a Razorpay order with the note amount
+//   4. Returns orderId + Razorpay key to frontend for checkout
 const createOrder = async (req, res) => {
   try {
     const { noteId } = req.body;
@@ -26,14 +32,22 @@ const createOrder = async (req, res) => {
     const note = await Note.findById(noteId);
     if (!note) return res.status(404).json({ message: 'Note not found' });
 
-    // Free notes don't go through payment
+    // IMPORTANT: Free notes (including textbooks) must use the direct purchase endpoint
     if (note.price === 0 || note.isTextbook) {
-      return res.status(400).json({ message: 'This note is free. Use the purchase endpoint directly.' });
+      return res.status(400).json({
+        message: 'This is a free note. Use POST /api/notes/:id/purchase instead.',
+        useDirectPurchase: true,
+      });
     }
 
     const user = await User.findById(req.user._id);
+    
+    // Prevent duplicate purchase attempts — note already owned
     if (user.purchasedNotes.includes(note._id)) {
-      return res.status(400).json({ message: 'Note already purchased' });
+      return res.status(400).json({
+        message: 'You already own this note',
+        alreadyPurchased: true,
+      });
     }
 
     const razorpay = getRazorpay();
@@ -76,6 +90,12 @@ const createOrder = async (req, res) => {
 // @desc    Verify Razorpay payment signature & complete purchase
 // @route   POST /api/payments/verify
 // @access  Private
+// PAYMENT FLOW for paid notes:
+//   1. Frontend: GET /api/payments/create-order { noteId } → returns orderId + Razorpay key
+//   2. Frontend: User completes Razorpay checkout & gets signature
+//   3. Frontend: POST /api/payments/verify { razorpay_order_id, razorpay_payment_id, razorpay_signature, noteId }
+//   4. Backend: Verify HMAC signature, add to purchasedNotes, send seller notification
+// NOTE: Free notes (price=0) can skip Razorpay and use POST /api/notes/:id/purchase directly
 const verifyPayment = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, noteId } = req.body;
@@ -84,7 +104,7 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ message: 'Missing payment verification fields' });
     }
 
-    // Verify signature
+    // Verify HMAC signature — ensures payment was processed by Razorpay
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -94,7 +114,7 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ message: 'Payment verification failed. Invalid signature.' });
     }
 
-    // Payment is valid — complete the purchase
+    // Payment signature is valid — complete the note purchase
     const note = await Note.findById(noteId);
     if (!note) return res.status(404).json({ message: 'Note not found' });
 

@@ -84,12 +84,24 @@ const noteSchema = new mongoose.Schema({
     matchedSources: [{
       title: { type: String },
       url: { type: String },
-      percentage: { type: Number }
+      noteId: { type: String },
+      percentage: { type: Number },
+      type: { type: String },
+      message: { type: String },
     }],
     highlightedCopiedContent: [{
       text: { type: String },
       source: { type: String }
-    }]
+    }],
+    detectedPatterns: [{
+      pattern: { type: String },
+      similarity: { type: Number },
+      type: { type: String },
+    }],
+    riskLevel: { type: String, default: 'LOW' },
+    confidence: { type: Number, default: 0 },
+    checkedAgainst: { type: Number, default: 0 },
+    detectionMethod: { type: String, default: 'LOCAL_ANALYSIS' },
   },
   originalityReport: {
     type: String,
